@@ -140,7 +140,7 @@ void WeaponTypeExt::LoadFromINIFile(CCINIClass* const pINI)
 	this->ExtraWarheads_DamageOverrides.Read(exINI, pSection, "ExtraWarheads.DamageOverrides");
 	this->ExtraWarheads_DetonationChances.Read(exINI, pSection, "ExtraWarheads.DetonationChances");
 	this->ExtraWarheads_RollChances.Read(exINI, pSection, "ExtraWarheads.RollChances");
-
+	this->AlwaysFaceTarget.Read(exINI, pSection, "AlwaysFaceTarget");
 	// ExtraWarheads.RandomWeights
 	for (size_t i = 0; ; ++i)
 	{

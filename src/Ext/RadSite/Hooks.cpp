@@ -5,6 +5,14 @@
 #include <Ext/WeaponType/Body.h>
 #include <Ext/WarheadType/Body.h>
 #include <Ext/Cell/Body.h>
+#include <WarheadTypeClass.h>
+#include <RulesClass.h>
+#include <TerrainClass.h>
+#include <MapClass.h>
+#include <CellClass.h>
+
+// Librería estándar de C/C++ para usar strstr()
+#include <string.h>
 /*
 	Custom Radiations
 	Worked out from old uncommented Ares RadSite Hook , adding some more hook
@@ -32,6 +40,57 @@ DEFINE_HOOK(0x469150, BulletClass_Detonate_ApplyRadiation, 0x5)
 		const auto spread = static_cast<int>(pWH->CellSpread);
 
 		pExt->ApplyRadiationToCell(cell, spread, pWeapon->RadLevel);
+	}
+
+	if (pThis->WH && pThis->WH->Radiation)
+	{
+
+		// Tomamos el centro del impacto y el radio de la ojiva directamente
+		CellStruct center = pThis->GetCell()->MapCoords;
+		int spread = pThis->WH->CellSpread;
+
+		for (int x = -spread; x <= spread; x++)
+		{
+			for (int y = -spread; y <= spread; y++)
+			{
+
+				CellClass* pCell = MapClass::Instance.GetCellAt(
+					CellStruct { (short)(center.X + x), (short)(center.Y + y) }
+				);
+
+				if (pCell)
+				{
+					TerrainClass* pTerrain = pCell->GetTerrain(false);
+
+					if (pTerrain && strstr(pTerrain->Type->ID, "TREE") != nullptr)
+					{
+
+						// Poné esto en 1000 SOLO PARA PROBAR. Si el árbol cae de un solo tiro, el código funciona.
+						// Una vez que veas que funciona, bajalo a 90 para que requiera los 4 impactos.
+						int damage = 100;
+
+						// Usamos tu propia ojiva (RadEruptionWarhead) directamente desde el proyectil
+						WarheadTypeClass* pWH = pThis->WH;
+
+						if (pWH)
+						{
+							// TRUCO: Apagamos la bandera de radiación temporalmente en la memoria
+							bool wasRadiation = pWH->Radiation;
+							pWH->Radiation = false;
+
+							TechnoClass* pAttacker = pThis->Owner;
+							HouseClass* pHouse = pAttacker ? pAttacker->Owner : nullptr;
+
+							// Ahora el motor ve que el arma "no es radiación" y acepta aplicar el daño
+							pTerrain->ReceiveDamage(&damage, 0, pWH, pAttacker, false, false, pHouse);
+
+							// Volvemos a prender la radiación al instante para que se genere el charco verde
+							pWH->Radiation = wasRadiation;
+						}
+					}
+				}
+			}
+		}
 	}
 
 	return 0x46920B;
@@ -199,6 +258,7 @@ DEFINE_HOOK(0x43FB23, BuildingClass_AI_Radiation, 0x5)
 
 	return 0;
 }
+
 
 // skip Frame % RadApplicationDelay
 DEFINE_JUMP(LJMP, 0x4DA554, 0x4DA56E);
@@ -386,7 +446,7 @@ DEFINE_HOOK(0x65BB67, RadSite_Deactivate, 0x6)
 
 	return 0x65BB6D;
 }
-
+/*
 DEFINE_HOOK_AGAIN(0x65BE01, RadSiteClass_UpdateLevel, 0x6)// RadSiteClass_DecreaseRadiation_Decrease
 DEFINE_HOOK_AGAIN(0x65BC6E, RadSiteClass_UpdateLevel, 0x6)// RadSiteClass_Deactivate_Decrease
 DEFINE_HOOK(0x65BAC1, RadSiteClass_UpdateLevel, 0x8)// RadSiteClass_Radiate_Increase
@@ -441,6 +501,122 @@ DEFINE_HOOK(0x65BAC1, RadSiteClass_UpdateLevel, 0x8)// RadSiteClass_Radiate_Incr
 					it->Level = std::max(level, 0);
 				}
 			}
+		}
+	}
+
+	if (R->Origin() == 0x65BAC1)
+		return SkipGameCode;
+	else if (R->Origin() == 0x65BC6E)
+		return SkipGameCode2;
+	else
+		return SkipGameCode3;
+}
+*/
+
+DEFINE_HOOK_AGAIN(0x65BE01, RadSiteClass_UpdateLevel, 0x6)// RadSiteClass_DecreaseRadiation_Decrease
+DEFINE_HOOK_AGAIN(0x65BC6E, RadSiteClass_UpdateLevel, 0x6)// RadSiteClass_Deactivate_Decrease
+DEFINE_HOOK(0x65BAC1, RadSiteClass_UpdateLevel, 0x8)// RadSiteClass_Radiate_Increase
+{
+	enum { SkipGameCode = 0x65BB11, SkipGameCode2 = 0x65BCBD, SkipGameCode3 = 0x65BE4C };
+
+	GET(RadSiteClass*, pThis, EDX);
+	GET(const int, distance, EAX);
+	const int max = pThis->SpreadInLeptons;
+
+	if (distance <= max)
+	{
+		CellStruct* cell = nullptr;
+
+		if (R->Origin() == 0x65BAC1)
+			cell = R->lea_Stack<CellStruct*>(STACK_OFFSET(0x60, -0x4C));
+		else if (R->Origin() == 0x65BC6E)
+			cell = R->lea_Stack<CellStruct*>(STACK_OFFSET(0x70, -0x5C));
+		else
+			cell = R->lea_Stack<CellStruct*>(STACK_OFFSET(0x60, -0x50));
+
+		CellClass* pActualCell = MapClass::Instance.TryGetCellAt(*cell);
+
+		if (const auto pCellExt = CellExt::TryFetch(pActualCell))
+		{
+			auto& radLevels = pCellExt->RadLevels;
+
+			const auto it = std::find_if(radLevels.begin(), radLevels.end(), [pThis](CellExt::RadLevel const& item) { return item.Rad == pThis; });
+
+			if (R->Origin() == 0x65BAC1)
+			{
+				const int level = static_cast<int>(static_cast<double>(max - distance) / max * pThis->RadLevel);
+
+				if (it != radLevels.end())
+					it->Level = std::min(it->Level + level, RadSiteExt::Fetch(pThis)->Type->GetLevelMax());
+				else
+					radLevels.emplace_back(pThis, level);
+			}
+			else if (R->Origin() == 0x65BC6E)
+			{
+				if (it != radLevels.end())
+				{
+					GET_STACK(const int, stepCount, STACK_OFFSET(0x70, -0x30));
+					const int level = static_cast<int>(static_cast<double>(max - distance) / max * pThis->RadLevel / pThis->LevelSteps * stepCount);
+					it->Level = std::max(it->Level - std::max(level, 0), 0);
+				}
+			}
+			else
+			{
+				if (it != radLevels.end())
+				{
+					const int stepCount = pThis->RadTimeLeft / RadSiteExt::Fetch(pThis)->Type->GetLevelDelay();
+					const int level = static_cast<int>(static_cast<double>(max - distance) / max * pThis->RadLevel / pThis->LevelSteps * stepCount);
+					it->Level = std::max(level, 0);
+				}
+			}
+
+			// --- INICIO DE NUESTRA LÓGICA DE GUARNICIÓN ---
+			if (pActualCell)
+			{
+				BuildingClass* pBuilding = pActualCell->GetBuilding();
+
+				if (pBuilding && pBuilding->Occupants.Count > 0 && !pBuilding->Type->ImmuneToRadiation)
+				{
+					// FRENO 1: Solo aplicamos daño si estamos procesando la celda ancla (centro) del edificio.
+					// Esto evita que el código se ejecute múltiples veces simultáneas por cada celda de cimiento extra.
+					if (*cell == pBuilding->GetMapCoords())
+					{
+						int currentRad = 0;
+
+						const auto safeIt = std::find_if(radLevels.begin(), radLevels.end(), [pThis](CellExt::RadLevel const& item) { return item.Rad == pThis; });
+
+						if (safeIt != radLevels.end())
+						{
+							currentRad = safeIt->Level;
+						}
+						else if (R->Origin() == 0x65BAC1)
+						{
+							currentRad = static_cast<int>(static_cast<double>(max - distance) / max * pThis->RadLevel);
+						}
+
+						if (currentRad > 0)
+						{
+							// FRENO 2: Usamos 10000 para que sea lento y gradual.
+							// - Si el charco recién nace (500 rad), hay un 5% de chance de muerte por tic (aprox. 1 por segundo).
+							// - Si el charco se está disipando (50 rad), hay 0.5% de chance de muerte por tic.
+							int roll = (Unsorted::CurrentFrame * 17 + cell->X + cell->Y) % 2000;
+
+							if (roll < currentRad)
+							{
+								int lastIndex = pBuilding->Occupants.Count - 1;
+								FootClass* pInf = pBuilding->Occupants.GetItem(lastIndex);
+
+								if (pInf)
+								{
+									pBuilding->Occupants.RemoveItem(lastIndex);
+									pInf->UnInit();
+								}
+							}
+						}
+					}
+				}
+			}
+			// --- FIN DE NUESTRA LÓGICA ---
 		}
 	}
 

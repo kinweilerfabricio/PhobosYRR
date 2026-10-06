@@ -28,6 +28,7 @@ public:
 	std::vector<std::vector<CoordStruct>> EliteDeployedWeaponBurstFLHs;
 	Nullable<bool> InfantryAutoDeploy;
 	Nullable<PartialVector2D<double>> IdleActionFrequency;
+	Valueable<bool> GivesCaptureRefund;
 
 	// Per-sequence animation rates read from the infantry's art section
 	std::vector<int> CustomSequenceRates;
@@ -37,6 +38,7 @@ public:
 
 	explicit InfantryTypeExt(InfantryTypeClass* const OwnerObject) : TechnoTypeExt(OwnerObject)
 		, Slaved_OwnerWhenMasterKilled { SlaveChangeOwnerType::Killer }
+		, GivesCaptureRefund { false }
 		, SlavesFreeSound {}
 		, NotHuman_RandomDeathSequence {}
 		, DefaultDisguise {}

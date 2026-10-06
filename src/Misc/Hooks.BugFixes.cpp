@@ -5,12 +5,14 @@
 #include <TunnelLocomotionClass.h>
 #include <FileFormats/HVA.h>
 
+
 #include <Ext/BuildingType/Body.h>
 #include <Ext/Unit/Body.h>
 #include <Ext/Anim/Body.h>
 #include <Ext/SWType/Body.h>
 #include <Ext/WarheadType/Body.h>
 #include <Ext/Cell/Body.h>
+#include <Ext/InfantryType/Body.h>
 
 /*
 	Allow usage of TileSet of 255 and above without making NE-SW broken bridges unrepairable
@@ -826,7 +828,7 @@ DEFINE_HOOK(0x6D9781, Tactical_RenderLayers_DrawInfoTipAndSpiedSelection, 0x5)
 }
 #pragma endregion DrawInfoTipAndSpiedSelection
 
-static bool __fastcall BuildingClass_SetOwningHouse_Wrapper(BuildingClass* pThis, void*, HouseClass* pHouse, bool announce)
+/*static bool __fastcall BuildingClass_SetOwningHouse_Wrapper(BuildingClass* pThis, void*, HouseClass* pHouse, bool announce)
 {
 	// Fix : Suppress capture EVA event if ConsideredVehicle=yes
 	if(announce) announce = !pThis->IsStrange();
@@ -837,6 +839,65 @@ static bool __fastcall BuildingClass_SetOwningHouse_Wrapper(BuildingClass* pThis
 	{
 		const auto pType = pThis->Type;
 
+		if (pType->Powered || pType->PoweredSpecial)
+			reinterpret_cast<void(__thiscall*)(BuildingClass*)>(0x4549B0)(pThis);
+	}
+
+	return res;
+}
+*/
+
+static bool __fastcall BuildingClass_SetOwningHouse_Wrapper(BuildingClass* pThis, void*, HouseClass* pHouse, bool announce)
+{
+	// Fix : Suppress capture EVA event if ConsideredVehicle=yes
+	if (announce) announce = !pThis->IsStrange();
+
+	// Llamada original segura al motor
+	const bool res = reinterpret_cast<bool(__thiscall*)(BuildingClass*, HouseClass*, bool)>(0x448260)(pThis, pHouse, announce);
+
+	if (res)
+	{
+		const auto pType = pThis->Type;
+
+		// Verificamos que no sea la carga inicial del mapa
+		if (pThis->Owner != nullptr && pType != nullptr && pHouse != nullptr)
+		{
+			bool isEngineerCapture = false;
+
+			// Escaneamos la infantería en el mapa para atrapar al culpable con las manos en la masa
+			for (int i = 0; i < InfantryClass::Array.Count; ++i)
+			{
+				InfantryClass* pInf = InfantryClass::Array.GetItem(i);
+
+				// Si la infantería es válida, es del nuevo dueño y tiene un tipo
+				if (pInf && pInf->Owner == pHouse && pInf->Type)
+				{
+					// Comprobamos si esta infantería interactuó con el edificio
+					if (pInf->Destination == pThis || pInf->GetCell() == pThis->GetCell())
+					{
+						// --- ACÁ USAMOS TU EXTENSIÓN DE PHOBOS DEL .INI ---
+						auto pExt = InfantryTypeExt::Fetch(pInf->Type);
+						if (pExt && pExt->GivesCaptureRefund)
+						{
+							isEngineerCapture = true;
+							break; // Ya encontramos al culpable
+						}
+					}
+				}
+			}
+
+			// Si confirmamos que el evento fue causado por una unidad con CaptureRefund=yes
+			if (isEngineerCapture)
+			{
+				int refund = pType->GetCost() / 2;
+				if (refund > 0)
+				{
+					pHouse->GiveMoney(refund);
+				}
+			}
+		}
+
+		// Fix original de energía de Phobos...
 		if (pType->Powered || pType->PoweredSpecial)
 			reinterpret_cast<void(__thiscall*)(BuildingClass*)>(0x4549B0)(pThis);
 	}

@@ -113,6 +113,7 @@ public:
 	Nullable<bool> AttackFriendlies;
 	Nullable<bool> AttackCursorOnFriendlies;
 	Nullable<bool> AttackNoThreatBuildings;
+	Nullable<bool> AlwaysFaceTarget;
 
 	Nullable<bool> Anim_Update;
 
@@ -213,6 +214,7 @@ public:
 		, AttackNoThreatBuildings {}
 		, CylinderRangefinding {}
 		, Anim_Update {}
+		, AlwaysFaceTarget { false }
 	{ }
 
 	int GetBurstDelay(int burstIndex) const;

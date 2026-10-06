@@ -1,5 +1,7 @@
 #include "Body.h"
 #include <Interop/TechnoExt.h>
+#include <InfantryClass.h>
+#include "Ext/UnitType/Body.h"
 
 // Cursor & target acquisition stuff not directly tied to other features can go here.
 
@@ -357,12 +359,30 @@ DEFINE_FUNCTION_JUMP(VTABLE, 0x7EB418, InfantryClass__GetFireError_Wrapper)
 
 static Action __fastcall UnitClass__WhatAction_Wrapper(UnitClass* pThis, void* _, ObjectClass* pObj, bool ignoreForce)
 {
+	if (pThis && pObj && pObj->WhatAmI() == AbstractType::Infantry)
+	{
+		auto const pTypeExt = UnitTypeExt::Fetch(pThis->Type);
+
+		if (pTypeExt && pTypeExt->PriorityCrushInfantry)
+		{
+			auto pInf = static_cast<InfantryClass*>(pObj);
+
+			if (pThis->Type->Crusher && pInf->Type->Crushable)
+			{
+				return Action::Move; // Obligamos al motor de movimiento a rotar el chasis
+			}
+		}
+	}
+
 	AresScheme::Prefix(pThis, pObj, -1, false);
 	auto const result = pThis->UnitClass::MouseOverObject(pObj, ignoreForce);
 	AresScheme::Suffix();
+
 	return result;
 }
 DEFINE_FUNCTION_JUMP(VTABLE, 0x7F5CE4, UnitClass__WhatAction_Wrapper)
+
+
 
 static Action __fastcall InfantryClass__WhatAction_Wrapper(InfantryClass* pThis, void* _, ObjectClass* pObj, bool ignoreForce)
 {

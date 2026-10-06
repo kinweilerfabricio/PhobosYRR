@@ -7,6 +7,11 @@
 #include <GameOptionsClass.h>
 #include <Utilities/SequenceRates.h>
 
+// ========================================================================
+// LA SALA DE ESPERA (Acá guardamos los stats mientras el soldado cae)
+// ========================================================================
+std::unordered_map<InfantryClass*, int> RocketeersEnCaida;
+
 DEFINE_HOOK(0x51B2BD, InfantryClass_UpdateTarget_IsControlledByHuman, 0x6)
 {
 	GET(InfantryClass*, pThis, ESI);
@@ -186,8 +191,10 @@ DEFINE_HOOK(0x7093F8, TechnoClass_709290_DeployWeapon, 0x5)
 			return ReturnFalse;
 	}
 
+
 	return ReturnTrue;
 }
+
 
 // Skip incorrect retn to restore the auto deploy behavior of infantry
 DEFINE_HOOK(0x522373, InfantryClass_ApproachTarget_InfantryAutoDeploy, 0x5)
@@ -306,3 +313,4 @@ DEFINE_HOOK(0x51CDEF, InfantryClass_UpdateIdleAction_IdleActionFrequency, 0x6)
 
 	return 0;
 }
+

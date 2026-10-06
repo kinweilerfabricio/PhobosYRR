@@ -15,6 +15,7 @@ void InfantryTypeExt::LoadFromINIFile(CCINIClass* const pINI)
 	const char* pSection = pThis->ID;
 	INI_EX exINI(pINI);
 
+	this->GivesCaptureRefund.Read(exINI, pSection, "CaptureRefund");
 	this->Slaved_OwnerWhenMasterKilled.Read(exINI, pSection, "Slaved.OwnerWhenMasterKilled");
 	this->SlavesFreeSound.Read(exINI, pSection, "SlavesFreeSound");
 	this->NotHuman_RandomDeathSequence.Read(exINI, pSection, "NotHuman.RandomDeathSequence");

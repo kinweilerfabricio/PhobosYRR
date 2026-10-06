@@ -89,6 +89,8 @@ void UnitTypeExt::LoadFromINIFile(CCINIClass* const pINI)
 	const auto pArtINI = &CCINIClass::INI_Art;
 	INI_EX exArtINI(pArtINI);
 	auto pArtSection = pThis->ImageFile;
+	// En VehicleTypeExt.cpp dentro de LoadFromINIFile
+	this->PriorityCrushInfantry.Read(exINI, pSection, "PriorityCrushInfantry");
 
 	this->FireUp.Read(exArtINI, pArtSection, "FireUp");
 	this->FireUp_ResetInRetarget.Read(exArtINI, pArtSection, "FireUp.ResetInRetarget");

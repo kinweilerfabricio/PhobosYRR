@@ -80,6 +80,8 @@ public:
 	Valueable<int> ExtraTurretCount;
 	std::vector<CoordStruct> ExtraTurretOffsets;
 	Valueable<int> BurstPerTurret;
+	// En tu VehicleTypeExt.h (dentro de la clase)
+	Valueable<bool> PriorityCrushInfantry;
 
 	explicit UnitTypeExt(UnitTypeClass* const OwnerObject) : TechnoTypeExt(OwnerObject)
 		, SinkSpeed {}
@@ -139,6 +141,7 @@ public:
 		, ExtraTurretCount { 0 }
 		, ExtraTurretOffsets { }
 		, BurstPerTurret { 0 }
+		, PriorityCrushInfantry { false }
 	{ }
 
 	UnitTypeClass* OwnerObject() const
