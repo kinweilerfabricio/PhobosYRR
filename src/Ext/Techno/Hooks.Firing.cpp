@@ -7,9 +7,8 @@
 #include <Ext/WarheadType/Body.h>
 #include <Ext/WeaponType/Body.h>
 #include <Utilities/GeneralUtils.h>
-
+#include <combaseapi.h> // Necesario para CoCreateInstance
 #include <cmath>
-
 #pragma region TechnoClass_SelectWeapon
 
 DEFINE_HOOK(0x6F3339, TechnoClass_WhatWeaponShouldIUse_Interceptor, 0x8)

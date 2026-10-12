@@ -36,6 +36,8 @@ void InfantryTypeExt::LoadFromINIFile(CCINIClass* const pINI)
 	this->ProneSecondaryFireFLH.Read(exArtINI, pArtSection, "ProneSecondaryFireFLH");
 	this->DeployedPrimaryFireFLH.Read(exArtINI, pArtSection, "DeployedPrimaryFireFLH");
 	this->DeployedSecondaryFireFLH.Read(exArtINI, pArtSection, "DeployedSecondaryFireFLH");
+	this->Convert_Deploy.Read(exINI, pSection, "Convert.Deploy");
+	this->Convert_Undeploy.Read(exINI, pSection, "Convert.Undeploy");
 
 	// Per-sequence animation rates
 	char sequenceSection[0x20];
@@ -80,6 +82,8 @@ void InfantryTypeExt::Serialize(T& Stm)
 		.Process(this->CustomSequenceRates)
 		.Process(this->CustomSequenceNormalized)
 		.Process(this->IdleActionFrequency)
+		.Process(this->Convert_Deploy)
+		.Process(this->Convert_Undeploy)
 		;
 }
 

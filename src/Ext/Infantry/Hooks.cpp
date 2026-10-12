@@ -10,7 +10,7 @@
 // ========================================================================
 // LA SALA DE ESPERA (Acá guardamos los stats mientras el soldado cae)
 // ========================================================================
-std::unordered_map<InfantryClass*, int> RocketeersEnCaida;
+extern std::unordered_map<InfantryClass*, int> RocketeersEnCaida;
 
 DEFINE_HOOK(0x51B2BD, InfantryClass_UpdateTarget_IsControlledByHuman, 0x6)
 {
@@ -29,9 +29,29 @@ DEFINE_HOOK(0x520B3E, InfantryClass_DoingAI_DeployConvert_Deploy, 0x6)
 
 	if (pTypeExt->Convert_Deploy && !pExt->HasDeployConverted)
 	{
+		// --- NUEVO: PREVENIR AHOGAMIENTO ---
+		// Obtenemos la celda exacta sobre la que está flotando la unidad
+		CellClass* pCell = pThis->GetCell();
+
+		// Verificamos si la celda es agua (o un acantilado inaccesible)
+		if (pCell && (pCell->LandType == LandType::Water || pCell->LandType == LandType::Rock))
+		{
+			// Si es agua, bloqueamos la conversión, limpiamos la misión de Deploy 
+			// y lo mandamos a Guard para que siga volando como si nada.
+			pThis->QueueMission(Mission::Guard, false);
+			return 0;
+		}
+
+		// Si es tierra firme, procede con la conversión normalmente
 		pExt->HasDeployConverted = true;
 		pExt->HasUndeployConverted = false;
 		TechnoExt::ConvertToType(pThis, pTypeExt->Convert_Deploy);
+
+		// Rompe el bloqueo del bucle al volver a volar
+		if (pThis->Type->JumpJet)
+		{
+			pThis->QueueMission(Mission::Guard, false);
+		}
 	}
 
 	return 0;

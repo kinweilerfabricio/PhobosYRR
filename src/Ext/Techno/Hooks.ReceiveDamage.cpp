@@ -5,7 +5,9 @@
 #include <Ext/WarheadType/Body.h>
 #include <Ext/WeaponType/Body.h>
 #include <Utilities/AresHelper.h>
-
+#include <string.h>
+#include <unordered_map>
+std::unordered_map<InfantryClass*, int> RocketeersEnCaida;
 namespace ReceiveDamageTemp
 {
 	bool SkipLowDamageCheck = false;

@@ -29,6 +29,8 @@ public:
 	Nullable<bool> InfantryAutoDeploy;
 	Nullable<PartialVector2D<double>> IdleActionFrequency;
 	Valueable<bool> GivesCaptureRefund;
+	Valueable<InfantryTypeClass*> Convert_Deploy;
+	Valueable<InfantryTypeClass*> Convert_Undeploy;
 
 	// Per-sequence animation rates read from the infantry's art section
 	std::vector<int> CustomSequenceRates;

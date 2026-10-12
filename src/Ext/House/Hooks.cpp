@@ -55,6 +55,32 @@ DEFINE_HOOK(0x508D8D, HouseClass_UpdatePower_AfterBuildings, 0x6)
 
 	HouseExt::CalculatePowerSurplus(pThis);
 
+	// 1. Expresión booleana absoluta
+	bool bHasGoodPower = (pThis->PowerOutput > 0 && !pThis->HasLowPower());
+
+	// 2. Iteramos por TODOS los objetos tácticos en la memoria del juego
+	for (const auto pTechno : TechnoClass::Array)
+	{
+		// Verificamos que el objeto pertenezca al jugador que estamos calculando[cite: 5]
+		if (pTechno->Owner == pThis)
+		{
+			// Filtramos exclusivamente por el Robot Tank usando su ID[cite: 5]
+			if (strcmp(pTechno->get_ID(), "ROBO") == 0)
+			{
+				// Comparamos la energía con el estado actual del tanque (Deactivated) 
+				// para no llamar a las funciones repetidamente[cite: 5]
+				if (bHasGoodPower && pTechno->Deactivated)
+				{
+					pTechno->Reactivate(); // Restaura locomotores y armas[cite: 5]
+				}
+				else if (!bHasGoodPower && !pTechno->Deactivated)
+				{
+					pTechno->Deactivate(); // Corta el locomotor y apaga la unidad[cite: 5]
+				}
+			}
+		}
+	}
+
 	return 0;
 }
 
